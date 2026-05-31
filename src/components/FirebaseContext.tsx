@@ -44,12 +44,17 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         if (user && userEmail) {
           try {
             // Check for admin permissions based on email (lowercase)
-            const adminDoc = await getDoc(doc(db, 'admins', userEmail));
+            const adminRef = doc(db, 'admins', userEmail.trim());
+            const adminDoc = await getDoc(adminRef);
+            const exists = adminDoc.exists();
             const adminData = adminDoc.data();
             const schools = adminData?.schoolIds || [];
             
+            console.log(`Admin check for ${userEmail}: exists=${exists}, schools=${schools.length}`);
+            
             setAdminSchools(schools);
-            setIsAdmin(isSuper || schools.length > 0);
+            // Consider admin if they exist in collection OR are super admin
+            setIsAdmin(isSuper || exists);
           } catch (error) {
             console.error("Error fetching admin status:", error);
             setIsAdmin(isSuper);

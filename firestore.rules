@@ -14,7 +14,7 @@ service cloud.firestore {
       return request.auth != null;
     }
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email.lower() == 'lelalusiana215@gmail.com';
+      return isSignedIn() && request.auth.token.email.toLower() == 'lelalusiana215@gmail.com';
     }
     function getAdminData() {
       return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
@@ -22,8 +22,8 @@ service cloud.firestore {
     function isAdminOf(schoolId) {
       return isSignedIn() && (
         isSuperAdmin() || 
-        (exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())) && 
-         schoolId in get(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())).data.schoolIds)
+        (exists(/databases/$(database)/documents/admins/$(request.auth.token.email.toLower())) && 
+         schoolId in get(/databases/$(database)/documents/admins/$(request.auth.token.email.toLower())).data.schoolIds)
       );
     }
     function incoming() {
@@ -32,7 +32,7 @@ service cloud.firestore {
 
     // Admins Collection
     match /admins/{email} {
-      allow read: if isSignedIn() && (isSuperAdmin() || request.auth.token.email.lower() == email);
+      allow read: if isSignedIn() && (isSuperAdmin() || request.auth.token.email.toLower() == email);
       allow write: if isSuperAdmin();
     }
 
