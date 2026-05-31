@@ -61,10 +61,15 @@ export default function AdminPanel() {
 
   // Fetch all schools for super admin
   useEffect(() => {
-    if (!isSuperAdmin || !user) return;
+    if (!isSuperAdmin || !user) {
+      setSchoolsList([]);
+      return;
+    }
     const unsubscribe = onSnapshot(collection(db, 'schools'), (snapshot) => {
-      const schools = snapshot.docs.map(doc => ({ ...doc.data() } as School));
+      const schools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as School));
       setSchoolsList(schools);
+    }, (error) => {
+      console.error("Error fetching schools:", error);
     });
     return () => unsubscribe();
   }, [isSuperAdmin, user]);
@@ -87,12 +92,14 @@ export default function AdminPanel() {
 
   // Set initial selected school
   useEffect(() => {
-    if (adminSchools.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(adminSchools[0]);
-    } else if (isSuperAdmin && schoolsList.length > 0 && !selectedSchoolId) {
-      setSelectedSchoolId(schoolsList[0].id);
+    const availableIds = isSuperAdmin 
+      ? [...new Set([...schoolsList.map(s => s.id), ...adminSchools, ...adminsList.flatMap(a => a.schoolIds)])]
+      : adminSchools;
+
+    if (availableIds.length > 0 && !selectedSchoolId) {
+      setSelectedSchoolId(availableIds[0]);
     }
-  }, [adminSchools, isSuperAdmin, schoolsList]);
+  }, [adminSchools, isSuperAdmin, schoolsList, adminsList, selectedSchoolId]);
 
   // Fetch school metadata and student list
   useEffect(() => {
@@ -437,10 +444,14 @@ export default function AdminPanel() {
                 onChange={(e) => setSelectedSchoolId(e.target.value)}
                 className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 font-bold text-blue-900 outline-none focus:border-blue-500"
               >
-                {!selectedSchoolId && isSuperAdmin && <option value="">-- Pilih Sekolah --</option>}
-                {(isSuperAdmin ? schoolsList.map(s => s.id) : adminSchools).map(sid => (
+                {!selectedSchoolId && <option value="">-- Pilih Sekolah --</option>}
+                {[...new Set([
+                  ...(isSuperAdmin ? schoolsList.map(s => s.id) : []),
+                  ...adminSchools,
+                  ...(isSuperAdmin ? adminsList.flatMap(a => a.schoolIds) : [])
+                ])].map(sid => (
                   <option key={sid} value={sid}>
-                    {isSuperAdmin ? (schoolsList.find(s => s.id === sid)?.name || sid) : sid}
+                    {schoolsList.find(s => s.id === sid)?.name || sid}
                   </option>
                 ))}
               </select>
