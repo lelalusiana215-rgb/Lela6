@@ -38,27 +38,40 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       if (user) {
         const userEmail = user.email?.toLowerCase() || '';
-        const isSuper = userEmail === 'lelalusiana215@gmail.com';
+        const isSuper = userEmail.trim() === 'lelalusiana215@gmail.com';
         setIsSuperAdmin(isSuper);
+        
+        console.log(`[FirebaseContext] User: ${user.email}, UID: ${user.uid}, isSuper: ${isSuper}`);
         
         if (user && userEmail) {
           try {
-            // Check for admin permissions based on email (lowercase)
-            const adminRef = doc(db, 'admins', userEmail.trim());
+            // Check for admin permissions based on email
+            const emailKey = userEmail.trim();
+            const adminRef = doc(db, 'admins', emailKey);
+            console.log(`[FirebaseContext] Fetching admin doc: ${emailKey}`);
+            
             const adminDoc = await getDoc(adminRef);
             const exists = adminDoc.exists();
             const adminData = adminDoc.data();
             const schools = adminData?.schoolIds || [];
             
-            console.log(`Admin check for ${userEmail}: exists=${exists}, schools=${schools.length}`);
+            console.log(`[FirebaseContext] Doc result: exists=${exists}, schoolCount=${schools.length}`);
             
             setAdminSchools(schools);
             // Consider admin if they exist in collection OR are super admin
             setIsAdmin(isSuper || exists);
-          } catch (error) {
-            console.error("Error fetching admin status:", error);
-            setIsAdmin(isSuper);
-            setAdminSchools([]);
+          } catch (error: any) {
+            console.error("[FirebaseContext] Error checking admin status:", error);
+            
+            // Critical fallback: If we are the known super admin email, allow access even if doc fetch fails
+            if (isSuper) {
+              console.log("[FirebaseContext] Permission denied or fetch failed, but Super Admin email matched. Allowing access.");
+              setIsAdmin(true);
+              setAdminSchools([]); // They can potentially see all schools based on isSuperAdmin check in rules
+            } else {
+              setIsAdmin(false);
+              setAdminSchools([]);
+            }
           }
         } else {
           setAdminSchools([]);
