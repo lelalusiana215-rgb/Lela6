@@ -121,6 +121,34 @@ export default function App() {
     window.print();
   };
 
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const handleLogin = async () => {
+    if (loggingIn) return;
+    setLoggingIn(true);
+    try {
+      await login();
+      console.log("Login successful");
+    } catch (error: any) {
+      console.error("Login detail error:", error);
+      const currentDomain = window.location.hostname;
+      
+      if (error.code === 'auth/popup-blocked') {
+        alert("Pop-up login diblokir! Silakan izinkan pop-up atau klik 'Open in new tab' di pojok kanan atas preview AI Studio.");
+      } else if (error.code === 'auth/cancelled-popup-request' || error.code === 'auth/popup-closed-by-user') {
+        // User closed
+      } else if (error.code === 'auth/operation-not-allowed') {
+        alert("Gagal: Google Auth belum diaktifkan di Firebase Console. Silakan buka Authentication > Sign-in method dan aktifkan Google.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        alert(`Gagal: Domain ini (${currentDomain}) belum didaftarkan di Firebase. Silakan tambahkan "${currentDomain}" ke daftar 'Authorized Domains' di Firebase Console > Authentication > Settings.`);
+      } else {
+        alert(`Gagal login (${error.code}): ${error.message}\n\nPastikan Google Auth sudah aktif di Project g7kaih-ca74b.`);
+      }
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
   if (authLoading || schoolLoading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -224,6 +252,16 @@ export default function App() {
                     Hasil TKA
                   </button>
                 </div>
+
+                {!user && (
+                  <div className="mb-6 p-4 bg-blue-50 border border-blue-100 rounded-2xl flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                    <div className="text-xs text-blue-800 leading-relaxed">
+                      <p className="font-bold mb-1">Catatan untuk Admin:</p>
+                      Jika tombol <b>Login Admin</b> di bawah tidak memunculkan popup, silakan buka aplikasi di <b>Halaman Baru</b> (klik ikon kotak dengan panah di pojok kanan atas preview).
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.05)] p-8 md:p-10 border border-slate-100">
                   <h2 className="text-xl font-bold text-slate-800 mb-6 text-center italic">
@@ -479,15 +517,20 @@ export default function App() {
           <div className="flex items-center gap-4">
             {!user ? (
               <button 
-                onClick={login}
-                className="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-blue-600 transition-colors text-sm font-bold"
+                onClick={handleLogin}
+                disabled={loggingIn}
+                className="flex items-center gap-2 px-4 py-2 text-slate-400 hover:text-blue-600 transition-colors text-sm font-bold disabled:opacity-50"
               >
-                <LogIn className="w-4 h-4" />
-                Login Admin
+                {loggingIn ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
+                {loggingIn ? 'Memproses...' : 'Login Admin'}
               </button>
             ) : (
               <div className="flex items-center gap-4 bg-slate-50 p-1 pl-4 rounded-full border border-slate-100">
-                <span className="text-xs font-bold text-slate-500">{user.email}</span>
+                <span className="text-xs font-bold text-slate-500 truncate max-w-[180px] md:max-w-none flex items-center gap-2" title={user.email || user.displayName || ''}>
+                  <span className={`w-2 h-2 rounded-full ${isAdmin ? 'bg-emerald-500' : 'bg-red-400'}`}></span>
+                  {user.email || user.displayName || 'Admin'}
+                  {!isAdmin && <span className="text-[10px] text-red-500">(Bukan Admin)</span>}
+                </span>
                 <button 
                   onClick={logout}
                   className="p-2 bg-white text-slate-400 hover:text-red-500 transition-colors rounded-full shadow-sm"

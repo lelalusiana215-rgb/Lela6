@@ -73,7 +73,13 @@ export default function AdminPanel() {
   useEffect(() => {
     if (!isSuperAdmin || !user) return;
     const unsubscribe = onSnapshot(collection(db, 'admins'), (snapshot) => {
-      const admins = snapshot.docs.map(doc => ({ email: doc.id, ...doc.data() } as AdminUser));
+      const admins = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          email: doc.id, 
+          schoolIds: data.schoolIds || [] 
+        } as AdminUser;
+      });
       setAdminsList(admins);
     });
     return () => unsubscribe();
@@ -364,46 +370,57 @@ export default function AdminPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 w-fit overflow-x-auto max-w-full">
-        <button 
-          onClick={() => setActiveTab('students')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
-            activeTab === 'students' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-          }`}
-        >
-          <Users className="w-4 h-4" />
-          Siswa
-        </button>
-        <button 
-          onClick={() => setActiveTab('tka')}
-          className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
-            activeTab === 'tka' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-          }`}
-        >
-          <FileUp className="w-4 h-4" />
-          Data TKA
-        </button>
-        {isSuperAdmin && (
-          <>
-            <button 
-              onClick={() => setActiveTab('schools')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
-                activeTab === 'schools' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              <Building2 className="w-4 h-4" />
-              Sekolah
-            </button>
-            <button 
-              onClick={() => setActiveTab('admins')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
-                activeTab === 'admins' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-              }`}
-            >
-              <Settings className="w-4 h-4" />
-              Admin Khusus
-            </button>
-          </>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 w-fit overflow-x-auto max-w-full">
+          <button 
+            onClick={() => setActiveTab('students')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+              activeTab === 'students' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Siswa
+          </button>
+          <button 
+            onClick={() => setActiveTab('tka')}
+            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+              activeTab === 'tka' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+            }`}
+          >
+            <FileUp className="w-4 h-4" />
+            Data TKA
+          </button>
+          {isSuperAdmin && (
+            <>
+              <button 
+                onClick={() => setActiveTab('schools')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'schools' ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <Building2 className="w-4 h-4" />
+                Sekolah
+              </button>
+              <button 
+                onClick={() => setActiveTab('admins')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'admins' ? 'bg-indigo-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <Settings className="w-4 h-4" />
+                Admin Khusus
+              </button>
+            </>
+          )}
+        </div>
+
+        {user && (
+          <div className="flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-xl border border-slate-200">
+            <div className={`w-2 h-2 rounded-full ${isSuperAdmin ? 'bg-blue-500' : 'bg-emerald-500'}`}></div>
+            <span className="text-xs font-bold text-slate-600 truncate max-w-[200px]" title={user.email || user.displayName || ''}>
+              {user.email || user.displayName || 'Admin'} {isSuperAdmin ? '(Super Admin)' : '(Admin)'}
+            </span>
+          </div>
         )}
       </div>
 
@@ -785,37 +802,49 @@ export default function AdminPanel() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {adminsList.filter(a => a.email !== 'lelalusiana215@gmail.com').map(admin => (
+            {adminsList.map(admin => (
               <motion.div 
                 layout
                 key={admin.email}
-                className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all"
+                className={`bg-white p-6 rounded-3xl border shadow-sm hover:shadow-md transition-all ${
+                  admin.email === 'lelalusiana215@gmail.com' ? 'border-blue-200 bg-blue-50/10' : 'border-slate-100'
+                }`}
               >
                 <div className="flex justify-between items-start mb-4">
-                  <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                  <div className={`p-3 rounded-2xl ${
+                    admin.email === 'lelalusiana215@gmail.com' ? 'bg-blue-100 text-blue-600' : 'bg-indigo-50 text-indigo-600'
+                  }`}>
                     <Users className="w-6 h-6" />
                   </div>
-                  <button 
-                    onClick={() => handleDeleteAdmin(admin.email)}
-                    className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  {admin.email !== 'lelalusiana215@gmail.com' && (
+                    <button 
+                      onClick={() => handleDeleteAdmin(admin.email)}
+                      className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  )}
                 </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-1 truncate" title={admin.email}>{admin.email}</h3>
+                <h3 className="text-lg font-bold text-slate-800 mb-1 truncate" title={admin.email}>
+                  {admin.email} {admin.email === 'lelalusiana215@gmail.com' && <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full ml-1">SUPER</span>}
+                </h3>
                 <div className="mt-4 space-y-2">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Akses Sekolah:</p>
                   <div className="flex flex-wrap gap-2">
-                    {admin.schoolIds.map(sid => (
-                      <span key={sid} className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold">
-                        {schoolsList.find(s => s.id === sid)?.name || sid}
-                      </span>
-                    ))}
+                    {admin.email === 'lelalusiana215@gmail.com' ? (
+                      <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded-lg text-[10px] font-bold">Semua Sekolah</span>
+                    ) : (
+                      admin.schoolIds.map(sid => (
+                        <span key={sid} className="px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-[10px] font-bold">
+                          {schoolsList.find(s => s.id === sid)?.name || sid}
+                        </span>
+                      ))
+                    )}
                   </div>
                 </div>
               </motion.div>
             ))}
-            {adminsList.length <= 1 && (
+            {adminsList.length === 0 && (
               <div className="col-span-full py-12 text-center bg-white rounded-3xl border border-dashed border-slate-200 text-slate-400">
                 Belum ada admin khusus yang ditambahkan
               </div>

@@ -37,21 +37,27 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        const isSuper = user.email === 'lelalusiana215@gmail.com';
+        const userEmail = user.email?.toLowerCase() || '';
+        const isSuper = userEmail === 'lelalusiana215@gmail.com';
         setIsSuperAdmin(isSuper);
         
-        try {
-          // Check for admin permissions based on email (lowercase)
-          const adminDoc = await getDoc(doc(db, 'admins', user.email?.toLowerCase() || ''));
-          const adminData = adminDoc.data();
-          const schools = adminData?.schoolIds || [];
-          
-          setAdminSchools(schools);
-          setIsAdmin(isSuper || schools.length > 0);
-        } catch (error) {
-          console.error("Error fetching admin status:", error);
-          setIsAdmin(isSuper);
+        if (user && userEmail) {
+          try {
+            // Check for admin permissions based on email (lowercase)
+            const adminDoc = await getDoc(doc(db, 'admins', userEmail));
+            const adminData = adminDoc.data();
+            const schools = adminData?.schoolIds || [];
+            
+            setAdminSchools(schools);
+            setIsAdmin(isSuper || schools.length > 0);
+          } catch (error) {
+            console.error("Error fetching admin status:", error);
+            setIsAdmin(isSuper);
+            setAdminSchools([]);
+          }
+        } else {
           setAdminSchools([]);
+          setIsAdmin(isSuper);
         }
       } else {
         setIsAdmin(false);
