@@ -45,29 +45,38 @@ export function FirebaseProvider({ children }: { children: React.ReactNode }) {
         
         if (user && userEmail) {
           try {
-            // Check for admin permissions based on email
-            const emailKey = userEmail.trim();
+            // Check for admin permissions based on email (lowercase)
+            const emailKey = userEmail.toLowerCase().trim();
             const adminRef = doc(db, 'admins', emailKey);
-            console.log(`[FirebaseContext] Fetching admin doc: ${emailKey}`);
+            console.log(`[FirebaseContext] Admin check: attempting fetch for ${emailKey}`);
             
             const adminDoc = await getDoc(adminRef);
             const exists = adminDoc.exists();
-            const adminData = adminDoc.data();
-            const schools = adminData?.schoolIds || [];
             
-            console.log(`[FirebaseContext] Doc result: exists=${exists}, schoolCount=${schools.length}`);
-            
-            setAdminSchools(schools);
-            // Consider admin if they exist in collection OR are super admin
-            setIsAdmin(isSuper || exists);
+            if (exists) {
+              const adminData = adminDoc.data();
+              const schools = adminData?.schoolIds || [];
+              console.log(`[FirebaseContext] Admin doc found for ${emailKey}, schools:`, schools);
+              setAdminSchools(schools);
+              setIsAdmin(true);
+            } else {
+              console.log(`[FirebaseContext] No admin doc found for ${emailKey}. isSuper=${isSuper}`);
+              setAdminSchools([]);
+              setIsAdmin(isSuper);
+            }
           } catch (error: any) {
             console.error("[FirebaseContext] Error checking admin status:", error);
+            console.log("[FirebaseContext] Error details:", {
+              code: error.code,
+              message: error.message,
+              email: userEmail
+            });
             
             // Critical fallback: If we are the known super admin email, allow access even if doc fetch fails
             if (isSuper) {
               console.log("[FirebaseContext] Permission denied or fetch failed, but Super Admin email matched. Allowing access.");
               setIsAdmin(true);
-              setAdminSchools([]); // They can potentially see all schools based on isSuperAdmin check in rules
+              setAdminSchools([]);
             } else {
               setIsAdmin(false);
               setAdminSchools([]);

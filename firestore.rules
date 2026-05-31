@@ -11,13 +11,17 @@ service cloud.firestore {
       return request.auth != null;
     }
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email == 'lelalusiana215@gmail.com';
+      return isSignedIn() && (
+        request.auth.uid == 'x9Qzlx2QHmXDDHnzN9lRsNpEL512' ||
+        (request.auth.token.keys().contains('email') && request.auth.token.email.toLower() == 'lelalusiana215@gmail.com')
+      );
     }
     function isAdminOf(schoolId) {
       return isSignedIn() && (
         isSuperAdmin() || (
-          exists(/databases/$(database)/documents/admins/$(request.auth.token.email)) && 
-          schoolId in get(/databases/$(database)/documents/admins/$(request.auth.token.email)).data.schoolIds
+          request.auth.token.keys().contains('email') &&
+          exists(/databases/$(database)/documents/admins/$(request.auth.token.email.toLower())) &&
+          schoolId in get(/databases/$(database)/documents/admins/$(request.auth.token.email.toLower())).data.schoolIds
         )
       );
     }
@@ -25,15 +29,16 @@ service cloud.firestore {
     // Admins Collection
     match /admins/{email} {
       allow read: if isSignedIn() && (
-        isSuperAdmin() || request.auth.token.email == email
+        isSuperAdmin() || 
+        (request.auth.token.keys().contains('email') && request.auth.token.email.toLower() == email.toLower())
       );
       allow write: if isSuperAdmin();
     }
 
     // Schools Collection
     match /schools/{schoolId} {
-      allow get: if true;
-      allow list, create, update, delete: if isSuperAdmin();
+      allow read: if isSignedIn();
+      allow create, update, delete: if isSuperAdmin();
 
       // Students sub-collection
       match /students/{studentId} {

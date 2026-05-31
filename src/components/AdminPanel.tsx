@@ -59,12 +59,13 @@ export default function AdminPanel() {
     schoolIds: []
   });
 
-  // Fetch all schools for super admin
+  // Fetch schools for all admins (to resolve names and IDs)
   useEffect(() => {
-    if (!isSuperAdmin || !user) {
+    if (!user) {
       setSchoolsList([]);
       return;
     }
+    // Schools are now readable by any signed in user in firestore.rules
     const unsubscribe = onSnapshot(collection(db, 'schools'), (snapshot) => {
       const schools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as School));
       setSchoolsList(schools);
@@ -72,11 +73,14 @@ export default function AdminPanel() {
       console.error("Error fetching schools:", error);
     });
     return () => unsubscribe();
-  }, [isSuperAdmin, user]);
+  }, [user]);
 
   // Fetch all admins for super admin
   useEffect(() => {
-    if (!isSuperAdmin || !user) return;
+    if (!isSuperAdmin || !user) {
+      setAdminsList([]);
+      return;
+    }
     const unsubscribe = onSnapshot(collection(db, 'admins'), (snapshot) => {
       const admins = snapshot.docs.map(doc => {
         const data = doc.data();
@@ -86,6 +90,8 @@ export default function AdminPanel() {
         } as AdminUser;
       });
       setAdminsList(admins);
+    }, (error) => {
+      console.error("Error fetching admins:", error);
     });
     return () => unsubscribe();
   }, [isSuperAdmin, user]);
