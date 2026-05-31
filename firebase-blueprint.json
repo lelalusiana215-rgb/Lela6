@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Information about student graduation status",
+      "type": "object",
+      "properties": {
+        "nisn": {
+          "type": "string",
+          "description": "Nomor Induk Siswa Nasional"
+        },
+        "nama": {
+          "type": "string",
+          "description": "Student full name"
+        },
+        "kelas": {
+          "type": "string",
+          "description": "Class name"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["LULUS", "TIDAK LULUS"],
+          "description": "Graduation status"
+        },
+        "schoolId": {
+          "type": "string",
+          "description": "The ID of the school this student belongs to"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last updated timestamp"
+        }
+      },
+      "required": ["nisn", "nama", "kelas", "status", "schoolId"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Admin user information",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "Admin email address"
+        },
+        "schoolIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of school IDs this admin can manage"
+        }
+      },
+      "required": ["email", "schoolIds"]
+    }
+  },
+  "firestore": {
+    "schools/{schoolId}": {
+      "description": "Metadata for each school"
+    },
+    "schools/{schoolId}/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of students nested under their respective schools"
+    },
+    "admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Collection of authorized admin users with school mapping"
+    }
+  }
+}

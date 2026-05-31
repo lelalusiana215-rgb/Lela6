@@ -1,0 +1,8 @@
+{
+  "name": "Portal Pengumuman Kelulusan",
+  "description": "Sistem informasi pengumuman kelulusan siswa digital untuk berbagai instansi pendidikan.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

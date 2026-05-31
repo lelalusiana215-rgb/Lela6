@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Global Helpers
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.token.email.lower() == 'lelalusiana215@gmail.com';
+    }
+    function getAdminData() {
+      return get(/databases/$(database)/documents/admins/$(request.auth.uid)).data;
+    }
+    function isAdminOf(schoolId) {
+      return isSignedIn() && (
+        isSuperAdmin() || 
+        (exists(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())) && 
+         schoolId in get(/databases/$(database)/documents/admins/$(request.auth.token.email.lower())).data.schoolIds)
+      );
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+
+    // Admins Collection
+    match /admins/{email} {
+      allow read: if isSignedIn() && (isSuperAdmin() || request.auth.token.email.lower() == email);
+      allow write: if isSuperAdmin();
+    }
+
+    // Schools Collection
+    match /schools/{schoolId} {
+      allow get: if isValidId(schoolId);
+      allow list, create, update, delete: if isSuperAdmin();
+
+      // Students sub-collection
+      match /students/{studentId} {
+        allow get: if isValidId(studentId);
+        allow list, delete: if isAdminOf(schoolId);
+        allow create, update: if (
+          isAdminOf(schoolId) && 
+          isValidId(studentId) && 
+          isValidStudent(incoming(), schoolId)
+        );
+
+        function isValidStudent(data, sid) {
+          let coreKeys = ['nisn', 'schoolId', 'updatedAt'];
+          let hasCore = data.keys().hasAll(coreKeys);
+          
+          // These fields should be strings if they exist
+          let typesValid = (!data.keys().hasAny(['nama']) || data.nama is string) &&
+                           (!data.keys().hasAny(['kelas']) || data.kelas is string) &&
+                           (!data.keys().hasAny(['status']) || data.status in ['LULUS', 'TIDAK LULUS']);
+
+          let tkaValid = !data.keys().hasAny(['tka']) || (
+            data.tka is map &&
+            (!data.tka.keys().hasAny(['matematika']) || data.tka.matematika is number) &&
+            (!data.tka.keys().hasAny(['bahasaIndonesia']) || data.tka.bahasaIndonesia is number) &&
+            (!data.tka.keys().hasAny(['total']) || data.tka.total is number) &&
+            (!data.tka.keys().hasAny(['peringkat']) || data.tka.peringkat is number)
+          );
+
+          return hasCore && typesValid && tkaValid &&
+                 data.schoolId == sid &&
+                 data.nisn is string &&
+                 (data.updatedAt == request.time || !data.keys().hasAny(['updatedAt']));
+        }
+      }
+    }
+  }
+}
