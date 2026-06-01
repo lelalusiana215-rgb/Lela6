@@ -24,7 +24,7 @@ type AdminTab = 'students' | 'schools' | 'admins' | 'tka';
 
 export default function AdminPanel() {
   const { user, adminSchools, isSuperAdmin } = useFirebase();
-  const [activeTab, setActiveTab] = useState<AdminTab>('students');
+  const [activeTab, setActiveTab] = useState<AdminTab>(isSuperAdmin ? 'schools' : 'students');
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>('');
   const [schoolData, setSchoolData] = useState<any>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -69,10 +69,38 @@ export default function AdminPanel() {
       const schools = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as School));
       setSchoolsList(schools);
     }, (error) => {
-      console.error("Error fetching schools:", error);
+      // If permission denied (common if not super admin), we'll fetch individually in next effect
+      if (error.code !== 'permission-denied') {
+        console.error("Error fetching schools:", error);
+      }
     });
     return () => unsubscribe();
   }, [isSuperAdmin, user]);
+
+  // Fetch individual school names for specific admins if list permission is denied
+  useEffect(() => {
+    if (isSuperAdmin || !user || adminSchools.length === 0) return;
+    
+    const fetchSpecificSchools = async () => {
+      const fetched: School[] = [];
+      for (const sid of adminSchools) {
+        if (schoolsList.some(s => s.id === sid)) continue;
+        try {
+          const snap = await getDoc(doc(db, 'schools', sid));
+          if (snap.exists()) {
+            fetched.push({ id: sid, ...snap.data() } as School);
+          }
+        } catch (e) {
+          console.error(`Error fetching school ${sid}:`, e);
+        }
+      }
+      if (fetched.length > 0) {
+        setSchoolsList(prev => [...prev, ...fetched]);
+      }
+    };
+    
+    fetchSpecificSchools();
+  }, [isSuperAdmin, user, adminSchools]);
 
   // Fetch all admins for super admin
   useEffect(() => {
@@ -379,24 +407,28 @@ export default function AdminPanel() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100 w-fit overflow-x-auto max-w-full">
-          <button 
-            onClick={() => setActiveTab('students')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
-              activeTab === 'students' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            Siswa
-          </button>
-          <button 
-            onClick={() => setActiveTab('tka')}
-            className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
-              activeTab === 'tka' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            <FileUp className="w-4 h-4" />
-            Data TKA
-          </button>
+          {adminSchools.length > 0 && (
+            <>
+              <button 
+                onClick={() => setActiveTab('students')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'students' ? 'bg-blue-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Siswa
+              </button>
+              <button 
+                onClick={() => setActiveTab('tka')}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'tka' ? 'bg-amber-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+                }`}
+              >
+                <FileUp className="w-4 h-4" />
+                Data TKA
+              </button>
+            </>
+          )}
           {isSuperAdmin && (
             <>
               <button 
