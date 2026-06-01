@@ -1,3 +1,4 @@
+// Entry point for the application - Triggering sync update
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';

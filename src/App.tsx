@@ -19,6 +19,7 @@ import AdminPanel from './components/AdminPanel.tsx';
 type ViewState = 'search' | 'result' | 'admin' | 'error';
 type SearchType = 'graduation' | 'tka';
 
+// Portal Pengumuman Kelulusan - Trigger sync update
 export default function App() {
   const { user, isAdmin, loading: authLoading } = useFirebase();
   const [nisn, setNisn] = useState('');

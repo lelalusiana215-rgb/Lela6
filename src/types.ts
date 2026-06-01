@@ -10,6 +10,7 @@ export interface School {
   headerColor?: string;
 }
 
+/** Representasi data siswa untuk pengumuman kelulusan. */
 export interface Student {
   nisn: string;
   nama: string;
