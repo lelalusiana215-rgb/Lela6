@@ -34,6 +34,7 @@ export default function AdminPanel() {
   const [isEditing, setIsEditing] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isAddingSchool, setIsAddingSchool] = useState(false);
+  const [isEditingSchool, setIsEditingSchool] = useState(false);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
@@ -347,12 +348,13 @@ export default function AdminPanel() {
     if (!schoolFormData.id || !schoolFormData.name) return;
 
     try {
-      const sId = schoolFormData.id.toLowerCase().replace(/\s+/g, '-');
+      const sId = isEditingSchool ? schoolFormData.id : schoolFormData.id.toLowerCase().replace(/\s+/g, '-');
       await setDoc(doc(db, 'schools', sId), {
         ...schoolFormData,
         id: sId
       });
       setIsAddingSchool(false);
+      setIsEditingSchool(false);
       setSchoolFormData({ id: '', name: '', year: '2025/2026' });
     } catch (error: any) {
       console.error("Save school error:", error);
@@ -779,7 +781,11 @@ export default function AdminPanel() {
               <p className="text-slate-500 text-sm">Kelola instansi yang terdaftar di sistem</p>
             </div>
             <button 
-              onClick={() => setIsAddingSchool(true)}
+              onClick={() => {
+                setIsAddingSchool(true);
+                setIsEditingSchool(false);
+                setSchoolFormData({ id: '', name: '', year: '2025/2026' });
+              }}
               className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-bold transition-all shadow-lg active:scale-95"
             >
               <Building2 className="w-5 h-5" />
@@ -798,12 +804,26 @@ export default function AdminPanel() {
                   <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
                     <Building2 className="w-6 h-6" />
                   </div>
-                  <button 
-                    onClick={() => handleDeleteSchool(school.id)}
-                    className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button 
+                      onClick={() => {
+                        setSchoolFormData(school);
+                        setIsAddingSchool(true);
+                        setIsEditingSchool(true);
+                      }}
+                      className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all"
+                      title="Edit Data Sekolah"
+                    >
+                      <Edit2 className="w-5 h-5" />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteSchool(school.id)}
+                      className="p-2 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                      title="Hapus Sekolah"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
                 <h3 className="text-lg font-bold text-slate-800 mb-1">{school.name}</h3>
                 <p className="text-sm text-slate-500 mb-4">ID: <span className="font-mono">{school.id}</span></p>
@@ -969,9 +989,9 @@ export default function AdminPanel() {
             className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
           >
             <div className="bg-slate-900 p-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Tambah Sekolah Baru</h3>
+              <h3 className="text-xl font-bold text-white">{isEditingSchool ? 'Edit Sekolah' : 'Tambah Sekolah Baru'}</h3>
               <button 
-                onClick={() => setIsAddingSchool(false)}
+                onClick={() => { setIsAddingSchool(false); setIsEditingSchool(false); }}
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <X className="w-6 h-6" />
@@ -983,9 +1003,10 @@ export default function AdminPanel() {
                 <input 
                   type="text"
                   required
+                  disabled={isEditingSchool}
                   value={schoolFormData.id}
                   onChange={(e) => setSchoolFormData({...schoolFormData, id: e.target.value.toLowerCase().replace(/\s+/g, '-')})}
-                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-blue-500 focus:outline-none transition-all"
+                  className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-100 rounded-xl focus:border-blue-500 focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="contoh: sdn3-ciomas"
                 />
                 <p className="text-[10px] text-slate-400 mt-1 italic">Link akses: ?s={schoolFormData.id || 'id-sekolah'}</p>
